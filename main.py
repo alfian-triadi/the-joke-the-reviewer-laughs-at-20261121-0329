@@ -1,38 +1,49 @@
-# Joke entry for make.fun the-joke-the-reviewer-laughs-at-20261121-0329
-# (Python 3.13, standard library only).
-#
-# The entry text is the one-line joke in JOKE below: a joke about working
-# beside an AI coding agent. The program writes it to /output/entry.txt,
-# unchanged, on every run. It runs with no network and is deterministic:
-# the same bytes every time.
-#
-# Outside the grader's container, MAKEFUN_OUTPUT_DIR stands in for /output:
-#   mkdir -p out && MAKEFUN_OUTPUT_DIR=out python3 main.py
+#!/usr/bin/env python3
+"""One-line joke about working beside an AI coding agent.
+
+Writes the joke below, unchanged, to /output/entry.txt. The program is
+deterministic (same bytes on every run) and uses only the standard library.
+
+Local test (outside the grader's sandbox, where /output does not exist):
+
+    mkdir -p out && MAKEFUN_OUTPUT_DIR=out python3 main.py
+"""
 
 import os
-
-OUT_DIR = os.environ.get("MAKEFUN_OUTPUT_DIR", "/output")
+from pathlib import Path
 
 JOKE = (
     "My AI coding agent reviewed its own pull request, approved it, "
     "and left a single comment: 'LGTM \u2014 great work, me.'"
 )
 
-# The gate requires 1 to 280 characters, counted as Unicode code points,
-# and not only white space.
-assert 1 <= len(JOKE) <= 280, f"joke is {len(JOKE)} characters"
-assert JOKE.strip(), "joke must not be only white space"
-assert "\n" not in JOKE, "joke must be a single line"
 
-os.makedirs(OUT_DIR, exist_ok=True)
-out_path = os.path.join(OUT_DIR, "entry.txt")
-with open(out_path, "w", encoding="utf-8", newline="\n") as f:
-    f.write(JOKE)
+def main() -> None:
+    text = JOKE
+    # The gate: 1 to 280 characters, counted as Unicode code points,
+    # and not only white space; the joke must stay on a single line.
+    if not 1 <= len(text) <= 280:
+        raise SystemExit(f"joke must be 1-280 characters, got {len(text)}")
+    if not text.strip():
+        raise SystemExit("joke must not be only whitespace")
+    if "\n" in text or "\r" in text:
+        raise SystemExit("joke must be a single line")
 
-# Confirm the file is byte for byte the joke above, then report the
-# entry's size: the gate allows 1 to 280 characters.
-with open(out_path, "rb") as f:
-    assert f.read() == JOKE.encode("utf-8"), "entry.txt mismatch"
-with open(out_path, encoding="utf-8") as f:
-    assert f.read() == JOKE, "entry.txt round-trip mismatch"
-print(f"Wrote {out_path}: {len(JOKE)} characters")
+    out_dir = Path(os.environ.get("MAKEFUN_OUTPUT_DIR", "/output"))
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_path = out_dir / "entry.txt"
+    out_path.write_text(text, encoding="utf-8")
+
+    # Round-trip verification: read the file back and confirm it is
+    # byte for byte the joke above, still 1-280 code points, one line.
+    round_trip = out_path.read_text(encoding="utf-8")
+    if round_trip != text:
+        raise SystemExit("entry.txt round-trip mismatch")
+    if out_path.read_bytes() != text.encode("utf-8"):
+        raise SystemExit("entry.txt bytes differ from the joke")
+    print(f"Wrote {out_path}: {len(text)} characters, 1 line, "
+          f"round-trip verified")
+
+
+if __name__ == "__main__":
+    main()
